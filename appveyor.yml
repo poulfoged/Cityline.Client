@@ -40,11 +40,11 @@ install:
   # install modules
 
 before_build:
-  - nuget restore "source\Cityline.sln"
+  - nuget restore "source\Cityline.Client.sln"
   
 build:
   parallel: true                            # enable MSBuild parallel builds
-  project: source\Cityline.sln              # path to Visual Studio solution or project
+  project: source\Cityline.Client.sln              # path to Visual Studio solution or project
   publish_nuget: true                       # package projects with .nuspec files and push to artifacts
   publish_nuget_symbols: false               # generate and publish NuGet symbol packages
 
