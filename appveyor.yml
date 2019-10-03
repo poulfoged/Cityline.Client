@@ -1,0 +1,64 @@
+version: 0.2.{build}-beta
+
+# branches to build
+branches:
+  # blacklist
+  except:
+    - gh-pages
+
+# Do not build on tags (GitHub and BitBucket)
+skip_tags: true
+
+# Build worker image (VM template)
+image: Visual Studio 2019
+
+# build cache to preserve files/folders between builds
+cache:
+  - packages
+
+# scripts that are called at very beginning, before repo cloning
+init:
+  - git config --global core.autocrlf input
+
+# build platform, i.e. x86, x64, Any CPU. This setting is optional.
+#platform: Any CPU
+
+# build Configuration, i.e. Debug, Release, etc.
+configuration: Release
+
+dotnet_csproj:
+  patch: true
+  file: '**\*.csproj'
+  version: '{version}'
+  package_version: '{version}'
+  assembly_version: '{version}'
+  file_version: '{version}'
+  informational_version: '{version}'
+
+
+install:
+  # install modules
+
+before_build:
+  - nuget restore "source\Cityline.sln"
+  
+build:
+  parallel: true                            # enable MSBuild parallel builds
+  project: source\Cityline.sln              # path to Visual Studio solution or project
+  publish_nuget: true                       # package projects with .nuspec files and push to artifacts
+  publish_nuget_symbols: false               # generate and publish NuGet symbol packages
+
+test:
+  assemblies:
+    - '**\*.Tests.dll'
+
+deploy:
+  provider: NuGet
+  server:                  # remove to push to NuGet.org
+  api_key:
+    secure: 52ZhK1DIBiVow/nCYWqCgNcCi4u/56P6oy23zZ3z0aMM4fWE2/+Am1VmkcRT7wmp
+  skip_symbols: false
+  symbol_server:           # remove to push symbols to SymbolSource.org
+  on:
+    branch: master # only this will work
+    
