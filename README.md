@@ -53,4 +53,4 @@ Finally start listening for events by calling 'StartListen()'. Provide a cancell
 
 Simply add the NuGet package:
 
-`PM> Install-Package elasticsearch-inside`
+`PM> Install-Package Cityline.Client`
