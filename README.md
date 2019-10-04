@@ -25,6 +25,9 @@ Cityline Client for dotnet core for connecting to a [Cityline.Server](https://gi
     (app initialization)
 ```
 
+## Demo
+
+See a demo of the server and javascript client [here](https://poulfoged.github.io/Cityline-Chat).
 
 ## Getting started
 
