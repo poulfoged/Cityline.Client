@@ -6,11 +6,8 @@
 
 Cityline Client for dotnet core for connecting to a [Cityline.Server](https://github.com/poulfoged/Cityline.Server)-instance.
 
-
-
-
 ```
- This library                           Server side (C#)
+ This library                           Server side (dotnet)
 
  ┌──────────────────────────────┐       ┌──────────────────────────────┐      ┌──────────────────────────────┐
  │                              │       │                              │      │                              ├─┐
