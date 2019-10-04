@@ -1,20 +1,21 @@
-# Cityline
+![](https://raw.githubusercontent.com/poulfoged/Cityline.Client/master/icon.png) &nbsp; 
+[![Build status](https://ci.appveyor.com/api/projects/status/poi16vbjrlfv0ngw?svg=true)](https://ci.appveyor.com/project/poulfoged/cityline-client-yl6if) &nbsp; 
+[![Nuget version](https://img.shields.io/nuget/v/cityline.client)](https://www.nuget.org/packages/Cityline.Client/)
 
-Real-time library for sending events to Cityline clients. Deeply inspired by server sent events but initiated via posts which allow a much bigger state object with state across multiple producers.
+# Cityline.Client
 
-[![Build status](https://ci.appveyor.com/api/projects/status/jioe3k751sj14i5i?svg=true)](https://ci.appveyor.com/project/poulfoged/cityline)
-[![Nuget version](https://img.shields.io/nuget/v/cityline)](https://www.nuget.org/packages/Cityline/)
+Cityline Client for dotnet core for connecting to a [Cityline.Server](https://github.com/poulfoged/Cityline.Server)-instance.
 
 
 
 
 ```
- Client Side (JS)                        Server side (C#)
+ This library                           Server side (C#)
 
  ┌──────────────────────────────┐       ┌──────────────────────────────┐      ┌──────────────────────────────┐
  │                              │       │                              │      │                              ├─┐
  │                              │       │                              │      │                              │ │
- │       cityline-client        │◀─────▶│       CitylineService        │─────▶│      ICitylineProducer       │ │
+ │       Cityline.Client        │◀─────▶│       Cityline.Server        │─────▶│      ICitylineProducer       │ │
  │                              │       │                              │      │                              │ │
  │                              │       │                              │      │                              │ │
  └──────────────────────────────┘       └──────────────────────────────┘      └──┬───────────────────────────┘ │
@@ -27,3 +28,29 @@ Real-time library for sending events to Cityline clients. Deeply inspired by ser
     (app initialization)
 ```
 
+
+## Getting started
+
+To get started create a new instance of the client pointing directly to the servers cityline endpoint:
+
+```c#
+  var client = new CitylineClient(new Uri("https://my-server/cityline"));
+```
+
+You then subscribe to named events (this mirrors the .Name property of each producer)
+
+```c#
+  client.Subscribe("ping", frame => { Console.WriteLine("Ping!"); });
+```
+
+Finally start listening for events by calling 'StartListen()'. Provide a cancellationtoken to be able to abort: 
+
+```c#
+  await client.StartListening(token);
+```
+
+## Install
+
+Simply add the NuGet package:
+
+`PM> Install-Package elasticsearch-inside`
