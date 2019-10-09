@@ -17,6 +17,7 @@ namespace Cityline.Client
 {
     public class CitylineClient : EventEmitter, IDisposable
     {
+        public TimeSpan RetryOnErrorDelay { get; set; } = TimeSpan.FromSeconds(5);
         internal Uri _serverUrl;
         private int errorCount = 0;
         private readonly CancellationTokenSource _internalTokenSource = new CancellationTokenSource();
@@ -25,11 +26,11 @@ namespace Cityline.Client
         private readonly IDictionary<string, Frame> _frames = new Dictionary<string, Frame>();
         private readonly IDictionary<string, string> _idCache = new Dictionary<string, string>();
         private static readonly JsonSerializerSettings settings = new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver(), Formatting = Formatting.None };
-        
+
         public CitylineClient(Uri serverUrl, Func<HttpClient> httpClientFactory = null, Action<HttpRequestMessage> messageModifier = null)
         {
             _serverUrl = serverUrl ?? throw new ArgumentNullException(nameof(serverUrl));
-            _messageModifier = messageModifier ?? new Action<HttpRequestMessage>((message) => {});
+            _messageModifier = messageModifier ?? new Action<HttpRequestMessage>((message) => { });
 
             var factory = httpClientFactory ?? new Func<HttpClient>(() => new HttpClient() { Timeout = TimeSpan.FromMilliseconds(Timeout.Infinite) });
             _httpClient = factory.Invoke();
@@ -41,9 +42,10 @@ namespace Cityline.Client
             _httpClient?.Dispose();
         }
 
-        private async Task HandleUnsuccessfullResponse(HttpResponseMessage response) 
+        private async Task HandleUnsuccessfullResponse(HttpResponseMessage response)
         {
-             switch(response.StatusCode) {
+            switch (response.StatusCode)
+            {
 
                 case HttpStatusCode.NotFound:
                     throw new CitylineClientException($"Server not found, please ensure that url is correct: {_serverUrl}");
@@ -51,33 +53,46 @@ namespace Cityline.Client
                 case HttpStatusCode.InternalServerError:
                     errorCount++;
 
-                    if (errorCount > 3) 
+                    if (errorCount > 3)
                         throw new CitylineClientException("Aborting, Server returned error more than 3 times");
 
-                    await Task.Delay(RetryOnErrorDelay);                
+                    await Task.Delay(RetryOnErrorDelay);
                     break;
                 default:
                     throw new CitylineClientException($"Unhandled status resceived from server: {response.StatusCode}, {response.ReasonPhrase}");
             }
         }
 
-        // var handler = new HttpClientHandler
-        // {
-        //     ClientCertificateOptions = ClientCertificateOption.Manual,
-        //     ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => { return true; }
-        // };
+        public Task<Frame> GetFrame(string name)
+        {
+            var promise = new TaskCompletionSource<Frame>();
 
-        public TimeSpan RetryOnErrorDelay { get; set;} = TimeSpan.FromSeconds(5);
-        
+            EventHandle handle = null;
+            handle = Subscribe(name, frame =>
+            {
+                Unsubscribe(handle);
+                promise.TrySetResult(frame);
+            });
+
+            if (this._frames.ContainsKey(name))
+            {
+                Unsubscribe(handle);
+                promise.TrySetResult(this._frames[name]);
+            }
+
+            return promise.Task;
+        }
+
+
         public async Task StartListening(CancellationToken externalToken = default(CancellationToken))
         {
-            using (CancellationTokenSource linkedToken = CancellationTokenSource.CreateLinkedTokenSource(_internalTokenSource.Token, externalToken)) 
+            using (CancellationTokenSource linkedToken = CancellationTokenSource.CreateLinkedTokenSource(_internalTokenSource.Token, externalToken))
             {
-                while(!linkedToken.IsCancellationRequested) 
+                while (!linkedToken.IsCancellationRequested)
                 {
                     var buffer = new Buffer();
-                    var json = JsonConvert.SerializeObject(new { tickets = _idCache}, settings);
-    
+                    var json = JsonConvert.SerializeObject(new { tickets = _idCache }, settings);
+
                     using (var message = new HttpRequestMessage(HttpMethod.Post, this._serverUrl))
                     using (var content = new StringContent(json, Encoding.UTF8, "application/json"))
                     {
@@ -87,24 +102,24 @@ namespace Cityline.Client
                         using (var stream = await response.Content.ReadAsStreamAsync())
                         using (var reader = new StreamReader(stream))
                         {
-                            if (!response.IsSuccessStatusCode) 
+                            if (!response.IsSuccessStatusCode)
                             {
                                 await HandleUnsuccessfullResponse(response);
-                                continue;  
+                                continue;
                             }
 
                             this.errorCount = 0;
 
                             while (!reader.EndOfStream && !linkedToken.IsCancellationRequested)
                             {
-                                buffer.Add(reader.ReadLine());     
+                                buffer.Add(reader.ReadLine());
 
-                                while (buffer.HasTerminator()) 
+                                while (buffer.HasTerminator())
                                 {
                                     var chunk = buffer.Take();
                                     var frame = Frame.Parse(chunk);
                                     AddFrame(frame);
-                                }                        
+                                }
                             }
                         }
                     }
@@ -112,11 +127,11 @@ namespace Cityline.Client
             }
         }
 
-        private void AddFrame(Frame frame) 
+        private void AddFrame(Frame frame)
         {
             if (frame == null)
                 return;
-            
+
             if (string.IsNullOrWhiteSpace(frame.EventName))
                 return;
 
@@ -127,5 +142,5 @@ namespace Cityline.Client
             _frames[frame.EventName] = frame;
             Emit(frame.EventName, frame);
         }
-    }    
+    }
 }
